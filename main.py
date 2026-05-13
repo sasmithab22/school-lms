@@ -762,12 +762,12 @@ async def log_session(data: dict):
         cursor = db.cursor()
 
         query = """
-        INSERT INTO session_hours
+        INSERT INTO session_logs
         (
-            school_id,
             staff_id,
+            school_id,
             month,
-            session_date,
+            date,
             hours,
             topic
         )
@@ -776,10 +776,10 @@ async def log_session(data: dict):
 
         cursor.execute(query, (
 
-            data["school_id"],
             data["staff_id"],
+            data["school_id"],
             data["month"],
-            data["date"],      # frontend sends "date"
+            data["date"],
             data["hours"],
             data["topic"]
 
