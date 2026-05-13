@@ -754,38 +754,52 @@ def all_students(school_id: int):
 
 
 @app.post("/log-session")
-def log_session(data: dict):
+async def log_session(data: dict):
 
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
+    try:
 
-    # get staff username
-    cursor.execute(
-        "SELECT username FROM staff WHERE id=%s",
-        (data["staff_id"],)
-    )
+        db = get_db()
+        cursor = db.cursor()
 
-    staff = cursor.fetchone()
+        query = """
+        INSERT INTO session_hours
+        (
+            school_id,
+            staff_id,
+            month,
+            session_date,
+            hours,
+            topic
+        )
+        VALUES (%s,%s,%s,%s,%s,%s)
+        """
 
-    staff_name = staff["username"]
+        cursor.execute(query, (
 
-    cursor.execute("""
-        INSERT INTO session_logs
-        (staff_id, staff_name, school_id, month, date, hours, topic)
-        VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """,(
-        data["staff_id"],
-        staff_name,
-        data["school_id"],
-        data["month"],
-        data["date"],
-        data["hours"],
-        data["topic"]
-    ))
+            data["school_id"],
+            data["staff_id"],
+            data["month"],
+            data["date"],      # frontend sends "date"
+            data["hours"],
+            data["topic"]
 
-    db.commit()
+        ))
 
-    return {"message":"Session logged successfully"}
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "Session logged successfully"
+        }
+
+    except Exception as e:
+
+        print("SESSION ERROR:", str(e))
+
+        return {
+            "success": False,
+            "message": str(e)
+        }
 
 
 
