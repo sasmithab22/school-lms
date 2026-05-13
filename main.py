@@ -876,14 +876,8 @@ async def upload_lecture(
 
         print("UPLOAD STARTED")
 
-        # read file
-        file_bytes = await video.read()
-
-        print("FILE READ SUCCESS")
-
-        # upload to cloudinary
         result = cloudinary.uploader.upload_large(
-            file_bytes,
+            video.file,
             resource_type="video",
             folder="lectures"
         )
@@ -932,7 +926,7 @@ async def upload_lecture(
             "success": False,
             "error": str(e)
         }
-
+        
 @app.get("/get-lectures")
 def get_lectures(
     school_id: int,
