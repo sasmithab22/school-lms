@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>My Profile</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+display:flex;
+background:#f4f6fb;
+}
+
+.sidebar{
+width:220px;
+background:#0f1c2e;
+color:white;
+height:100vh;
+padding:20px;
+}
+
+.menu a{
+display:block;
+padding:12px;
+color:white;
+text-decoration:none;
+margin-bottom:10px;
+border-radius:6px;
+}
+
+.menu a:hover{
+background:#2f5ae5;
+}
+
+.active{
+background:#2f5ae5;
+}
+
+.main{
+flex:1;
+padding:30px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:10px;
+margin-bottom:25px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.profile-box{
+display:flex;
+align-items:center;
+gap:20px;
+}
+
+.avatar{
+width:70px;
+height:70px;
+border-radius:12px;
+background:#e6ecff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+font-weight:bold;
+color:#2d4be5;
+}
+
+input{
+width:100%;
+padding:10px;
+border-radius:6px;
+border:1px solid #ddd;
+margin-top:5px;
+}
+
+.row{
+display:flex;
+gap:20px;
+}
+
+button{
+margin-top:15px;
+padding:10px 20px;
+background:#2d4be5;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+button:hover{
+background:#1d36c0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<h2>RTLMS</h2>
+<p>SCHOOL PORTAL</p>
+
+<div class="menu">
+
+<a href="school-dashboard.html">⚡ Overview</a>
+<a href="students.html">🎓 Students</a>
+<a href="upload-students.html">📤 Upload Students</a>
+<a href="class-reports.html">📊 Class Reports</a>
+<a href="class-gallery.html">📷 Class Gallery</a>
+<a href="session-attendance.html">⏱ Session Attendance</a>
+<a href="staff-reports.html">📄 Staff Reports</a>
+<a class="active" href="my-profile.html">👤 My Profile</a>
+
+</div>
+
+<br>
+
+<a onclick="logout()" style="color:red;cursor:pointer;">Sign Out</a>
+
+</div>
+
+<div class="main">
+
+<h2>School Profile</h2>
+
+<div class="card">
+
+<div class="profile-box">
+
+<div class="avatar" id="avatarLetter">A</div>
+
+<div>
+<h3 id="schoolNameTitle"></h3>
+<p id="schoolUsername"></p>
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Edit Profile</h3>
+
+<div class="row">
+
+<div style="flex:1">
+<label>School Name</label>
+<input type="text" id="schoolName">
+</div>
+
+<div style="flex:1">
+<label>Username</label>
+<input type="text" id="username" disabled>
+</div>
+
+</div>
+
+<button onclick="saveProfile()">Save Changes</button>
+
+</div>
+
+</div>
+
+<script>
+
+let schoolId = localStorage.getItem("school_id")
+
+if(!schoolId){
+window.location.href="login.html"
+}
+
+
+fetch(`http://127.0.0.1:8000/school/profile/${schoolId}`)
+.then(res=>res.json())
+.then(data=>{
+
+document.getElementById("schoolNameTitle").innerText=data.school_name
+document.getElementById("schoolUsername").innerText="@"+data.username
+document.getElementById("schoolName").value=data.school_name
+document.getElementById("username").value=data.username
+
+document.getElementById("avatarLetter").innerText=data.school_name.charAt(0)
+
+})
+
+
+function saveProfile(){
+
+let name=document.getElementById("schoolName").value
+
+alert("Profile updated : "+name)
+
+}
+
+
+function logout(){
+
+localStorage.clear()
+
+alert("Logged out successfully")
+
+window.location.href="login.html"
+
+}
+
+</script>
+
+</body>
+</html>
