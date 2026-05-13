@@ -386,19 +386,21 @@ async def upload_students(file: UploadFile = File(...), school_id: int = Form(..
 
 
 @app.get("/get-students")
-def get_students(school_id: int, class_name: int):
+def get_students(school_id: int, class_name: str):
     db = get_db()
-
-
     cursor = db.cursor(dictionary=True)
+    if class_name == "ALL":
 
-    cursor.execute(
-        "SELECT * FROM students WHERE school_id=%s AND `class`=%s",
-        (school_id, class_name)
-    )
-
+        cursor.execute(
+            "SELECT * FROM students WHERE school_id=%s",
+            (school_id,)
+        )
+    else:
+        cursor.execute(
+            "SELECT * FROM students WHERE school_id=%s AND `class`=%s",
+            (school_id, class_name)
+        )
     students = cursor.fetchall()
-
     return {"students": students}
 
 
