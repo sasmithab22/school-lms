@@ -424,25 +424,52 @@ def get_profile(school_id: int):
 
 
 
-@app.get("/class-reports")
-def get_reports(school_id:int, class_name:str, month:str):
+@app.get("/get-reports")
+def get_reports(class_name: str, month: str):
 
-    db=get_db()
-    cursor=db.cursor(dictionary=True)
+    db = get_db()
 
-    cursor.execute("""
-    SELECT s.first_name,
-           c.subject,
-           c.mentor,
-           c.attendance,
-           c.mark,
-           c.remarks
-    FROM class_reports c
-    JOIN students s ON s.id=c.student_id
-    WHERE c.school_id=%s AND c.class=%s AND c.month=%s
-    """,(school_id,class_name,month))
+    cursor = db.cursor(dictionary=True)
 
-    return cursor.fetchall()
+    # SELECT ALL SUBJECTS
+    if class_name == "ALL":
+
+        query = """
+        SELECT *
+        FROM class_reports
+        WHERE month=%s
+        """
+
+        cursor.execute(query, (month,))
+
+    # SPECIFIC SUBJECT
+    else:
+
+        query = """
+        SELECT *
+        FROM class_reports
+        WHERE class_name=%s
+        AND month=%s
+        """
+
+        cursor.execute(query, (class_name, month))
+
+    reports = cursor.fetchall()
+
+    formatted_reports = []
+
+    for r in reports:
+
+        formatted_reports.append({
+            "student": r["student_name"],
+            "subject": r["subject"],
+            "mentor": r["mentor"],
+            "attendance": r["attendance"],
+            "mark": r["mark"],
+            "remarks": r["remarks"]
+        })
+
+    return {"reports": formatted_reports}
 
 @app.post("/staff-login")
 def staff_login(username: str, password: str):
