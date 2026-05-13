@@ -316,7 +316,7 @@ function registerStaff(){
 let username=document.getElementById("staff_username").value
 let password=document.getElementById("staff_password").value
 
-let school_id = localStorage.getItem("school_id")
+// let school_id = localStorage.getItem("school_id")
 
 fetch(`https://school-lms-production-6fcd.up.railway.app/create-staff?username=${username}&password=${password}`,{
 method:"POST"
