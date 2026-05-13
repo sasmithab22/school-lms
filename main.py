@@ -874,22 +874,61 @@ async def upload_lecture(
     description: str = Form(""),
     video: UploadFile = File(...)
 ):
-    file_bytes = await video.read()
-    file_url = upload_to_cloudinary(file_bytes, video.filename, folder="lectures")
 
-    db = get_db()
-    cursor = db.cursor()
+    try:
 
-    query = """
-    INSERT INTO lectures
-    (school_id, class_name, subject, title, description, video)
-    VALUES (%s,%s,%s,%s,%s,%s)
-    """
+        # READ VIDEO
+        file_bytes = await video.read()
 
-    cursor.execute(query, (school_id, class_name, subject, title, description, file_url))
-    db.commit()
+        # UPLOAD TO CLOUDINARY
+        result = cloudinary.uploader.upload(
+            file_bytes,
+            resource_type="video",
+            folder="lectures"
+        )
 
-    return {"message": "Lecture uploaded successfully"}
+        video_url = result["secure_url"]
+
+        db = get_db()
+        cursor = db.cursor()
+
+        query = """
+        INSERT INTO lectures
+        (
+            school_id,
+            class_name,
+            subject,
+            title,
+            description,
+            video
+        )
+        VALUES (%s,%s,%s,%s,%s,%s)
+        """
+
+        cursor.execute(query, (
+            school_id,
+            class_name,
+            subject,
+            title,
+            description,
+            video_url
+        ))
+
+        db.commit()
+
+        return {
+            "success": True,
+            "video_url": video_url
+        }
+
+    except Exception as e:
+
+        print("UPLOAD ERROR:", str(e))
+
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 @app.get("/get-lectures")
 def get_lectures(class_name: str, school_id: int):
