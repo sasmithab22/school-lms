@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 import os
 import cloudinary
 import cloudinary.uploader
-
+from pydantic import BaseModel
+from fastapi import FastAPI
+from pydantic import BaseModel
+from database import get_db
 load_dotenv()
 
 # ── Cloudinary config (add these 3 keys to your .env) ──
@@ -42,7 +45,105 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from pydantic import BaseModel
 
+class ReportModel(BaseModel):
+
+    school_id: int
+    student_id: int
+    student_name: str
+    class_name: str
+    subject: str
+    mentor: str
+    date: str
+    attendance: int
+    mark: int
+    remarks: str
+
+
+@app.get("/get-report-dates")
+def get_report_dates(school_id: int, class_name: str):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # SELECT ALL support
+    if class_name == "ALL":
+
+        cursor.execute("""
+            SELECT DISTINCT date
+            FROM class_reports
+            WHERE school_id=%s
+            AND date IS NOT NULL
+            ORDER BY date DESC
+        """, (school_id,))
+
+    else:
+
+        cursor.execute("""
+            SELECT DISTINCT date
+            FROM class_reports
+            WHERE school_id=%s
+            AND class_name=%s
+            AND date IS NOT NULL
+            ORDER BY date DESC
+        """, (school_id, class_name))
+
+    rows = cursor.fetchall()
+
+    dates = []
+
+    for row in rows:
+
+        if row[0]:
+            dates.append(str(row[0]))
+
+    return {
+        "dates": dates
+    }
+    
+@app.post("/submit-report")
+def submit_report(report: ReportModel):
+    db = get_db()
+    cursor = db.cursor()
+    query = """
+    INSERT INTO class_reports
+    (
+        school_id,
+        student_id,
+        student_name,
+        class_name,
+        subject,
+        mentor,
+        date,
+        attendance,
+        mark,
+        remarks
+    )
+    VALUES
+    (
+        %s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+    )
+    """
+    values = (
+
+        report.school_id,
+        report.student_id,
+        report.student_name,
+        report.class_name,
+        report.subject,
+        report.mentor,
+        report.date,
+        report.attendance,
+        report.mark,
+        report.remarks
+    )
+    cursor.execute(query, values)
+    db.commit()
+
+    return {
+        "message": "Report saved successfully"
+    }
 @app.post("/register")
 def register(name:str,email:str,password:str,role:str):
 
@@ -208,17 +309,35 @@ def create_student(name:str,email:str,password:str,class_id:int,school_id:int):
 
 
 @app.post("/mark-attendance")
-def mark_attendance(student_id:int,class_id:int,status:str):
+def mark_attendance(
+    student_id: int,
+    class_name: str,
+    status: str
+):
 
     db = get_db()
     cursor = db.cursor()
+    today = date.today()
+    query = """
+    INSERT INTO attendance
+    (student_id, class_id, date, status)
+    VALUES (%s, %s, %s, %s)
+    """
 
-    query = "INSERT INTO attendance (student_id,class_id,date,status) VALUES (%s,%s,CURDATE(),%s)"
-    cursor.execute(query,(student_id,class_id,status))
+    cursor.execute(
+        query,
+        (
+            student_id,
+            class_name,
+            today,
+            status
+        )
+    )
 
     db.commit()
-
-    return {"message":"Attendance marked"}
+    return {
+        "message": "Attendance Marked"
+    }
 
 
 @app.post("/add-marks")
@@ -386,19 +505,21 @@ async def upload_students(file: UploadFile = File(...), school_id: int = Form(..
 
 
 @app.get("/get-students")
-def get_students(school_id: int, class_name: int):
+def get_students(school_id: int, class_name: str):
     db = get_db()
-
-
     cursor = db.cursor(dictionary=True)
+    if class_name == "ALL":
 
-    cursor.execute(
-        "SELECT * FROM students WHERE school_id=%s AND `class`=%s",
-        (school_id, class_name)
-    )
-
+        cursor.execute(
+            "SELECT * FROM students WHERE school_id=%s",
+            (school_id,)
+        )
+    else:
+        cursor.execute(
+            "SELECT * FROM students WHERE school_id=%s AND `class`=%s",
+            (school_id, class_name)
+        )
     students = cursor.fetchall()
-
     return {"students": students}
 
 
@@ -419,28 +540,50 @@ def get_profile(school_id: int):
     db.close()
 
     return school   
+    
+@app.get("/get-reports")
+def get_reports(class_name: str, date: str):
 
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    if class_name == "ALL":
 
+        query = """
+        SELECT *
+        FROM class_reports
+        WHERE date=%s
+        """
 
-@app.get("/class-reports")
-def get_reports(school_id:int, class_name:str, month:str):
+        cursor.execute(query, (date,))
 
-    db=get_db()
-    cursor=db.cursor(dictionary=True)
+    else:
 
-    cursor.execute("""
-    SELECT s.first_name,
-           c.subject,
-           c.mentor,
-           c.attendance,
-           c.mark,
-           c.remarks
-    FROM class_reports c
-    JOIN students s ON s.id=c.student_id
-    WHERE c.school_id=%s AND c.class=%s AND c.month=%s
-    """,(school_id,class_name,month))
+        query = """
+        SELECT *
+        FROM class_reports
+        WHERE class_name=%s
+        AND date=%s
+        """
 
-    return cursor.fetchall()
+        cursor.execute(query, (class_name, date))
+
+    reports = cursor.fetchall()
+    formatted_reports = []
+
+    for r in reports:
+
+        formatted_reports.append({
+            "student": r["student_name"],
+            "subject": r["subject"],
+            "mentor": r["mentor"],
+            "attendance": r["attendance"],
+            "mark": r["mark"],
+            "remarks": r["remarks"]
+        })
+
+    return {
+        "reports": formatted_reports
+    }
 
 @app.post("/staff-login")
 def staff_login(username: str, password: str):
@@ -532,97 +675,6 @@ def class_reports_summary(school_id:int,class_name:str,month:str):
     "reports":rows
     }
 
-
-
-from pydantic import BaseModel
-
-
-
-
-
-
-class Report(BaseModel):
-    student_id:int
-    school_id:int
-    class_name:str
-    subject:str
-    mentor:str
-    attendance:int
-    mark:int
-    remarks:str
-    month:str
-
-
-
-from fastapi import FastAPI
-from pydantic import BaseModel
-from database import get_db
-
-
-
-class Report(BaseModel):
-    student_id:int
-    school_id:int
-    class_name:str
-    subject:str
-    mentor:str
-    attendance:int
-    mark:int
-    remarks:str
-    month:str
-
-@app.post("/submit-report")
-def submit_report(data: dict):
-
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute("""
-    INSERT INTO class_reports
-    (school_id,student_id,student_name,class_name,subject,mentor,month,attendance,mark,remarks)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """,(
-
-    data["school_id"],
-    data["student_id"],
-    data["student_name"],
-    data["class_name"],
-    data["subject"],
-    data["mentor"],
-    data["month"],
-    data["attendance"],
-    data["mark"],
-    data["remarks"]
-
-    ))
-
-    db.commit()
-
-    return {"message":"Report Saved"}
-
-
-@app.get("/get-reports")
-def get_reports(class_name:str, month:str):
-
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT student_name as student,
-               subject,
-               mentor,
-               attendance,
-               mark,
-               remarks
-        FROM class_reports
-        WHERE class_name=%s AND month=%s
-    """,(class_name,month))
-
-    data = cursor.fetchall()
-
-    return {"reports":data}
-
-
 @app.post("/upload-gallery")
 async def upload_gallery(
     school_id: int = Form(...),
@@ -702,38 +754,52 @@ def all_students(school_id: int):
 
 
 @app.post("/log-session")
-def log_session(data: dict):
+async def log_session(data: dict):
 
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
+    try:
 
-    # get staff username
-    cursor.execute(
-        "SELECT username FROM staff WHERE id=%s",
-        (data["staff_id"],)
-    )
+        db = get_db()
+        cursor = db.cursor()
 
-    staff = cursor.fetchone()
-
-    staff_name = staff["username"]
-
-    cursor.execute("""
+        query = """
         INSERT INTO session_logs
-        (staff_id, staff_name, school_id, month, date, hours, topic)
-        VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """,(
-        data["staff_id"],
-        staff_name,
-        data["school_id"],
-        data["month"],
-        data["date"],
-        data["hours"],
-        data["topic"]
-    ))
+        (
+            staff_id,
+            school_id,
+            month,
+            date,
+            hours,
+            topic
+        )
+        VALUES (%s,%s,%s,%s,%s,%s)
+        """
 
-    db.commit()
+        cursor.execute(query, (
 
-    return {"message":"Session logged successfully"}
+            data["staff_id"],
+            data["school_id"],
+            data["month"],
+            data["date"],
+            data["hours"],
+            data["topic"]
+
+        ))
+
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "Session logged successfully"
+        }
+
+    except Exception as e:
+
+        print("SESSION ERROR:", str(e))
+
+        return {
+            "success": False,
+            "message": str(e)
+        }
 
 
 
@@ -810,9 +876,6 @@ import shutil
 from fastapi import FastAPI, UploadFile, File, Form
 
 import os
-
-
-
 @app.post("/upload-lecture")
 async def upload_lecture(
     school_id: int = Form(...),
@@ -822,41 +885,94 @@ async def upload_lecture(
     description: str = Form(""),
     video: UploadFile = File(...)
 ):
-    file_bytes = await video.read()
-    file_url = upload_to_cloudinary(file_bytes, video.filename, folder="lectures")
 
-    db = get_db()
-    cursor = db.cursor()
+    try:
 
-    query = """
-    INSERT INTO lectures
-    (school_id, class_name, subject, title, description, video)
-    VALUES (%s,%s,%s,%s,%s,%s)
-    """
+        print("UPLOAD STARTED")
 
-    cursor.execute(query, (school_id, class_name, subject, title, description, file_url))
-    db.commit()
+        result = cloudinary.uploader.upload_large(
+            video.file,
+            resource_type="video",
+            folder="lectures"
+        )
 
-    return {"message": "Lecture uploaded successfully"}
+        print("CLOUDINARY SUCCESS")
 
+        video_url = result["secure_url"]
+
+        db = get_db()
+        cursor = db.cursor()
+
+        query = """
+        INSERT INTO lectures
+        (
+            school_id,
+            class_name,
+            subject,
+            title,
+            description,
+            video
+        )
+        VALUES (%s,%s,%s,%s,%s,%s)
+        """
+
+        cursor.execute(query, (
+            school_id,
+            class_name,
+            subject,
+            title,
+            description,
+            video_url
+        ))
+
+        db.commit()
+
+        return {
+            "success": True,
+            "video_url": video_url
+        }
+
+    except Exception as e:
+
+        print("UPLOAD ERROR:", str(e))
+
+        return {
+            "success": False,
+            "error": str(e)
+        }
+        
 @app.get("/get-lectures")
-def get_lectures(class_name: str, school_id: int):
+def get_lectures(
+    school_id: int,
+    class_name: str
+):
 
     db = get_db()
     cursor = db.cursor(dictionary=True)
 
-    class_name = str(int(float(class_name)))
+    query = """
+    SELECT
+        id,
+        school_id,
+        class_name,
+        subject,
+        title,
+        description,
+        video
+    FROM lectures
+    WHERE school_id=%s
+    AND class_name=%s
+    ORDER BY id DESC
+    """
 
-    cursor.execute("""
-    SELECT * FROM lectures
-    WHERE class_name=%s AND school_id=%s
-    """, (class_name, school_id))
+    cursor.execute(query, (school_id, class_name))
 
-    data = cursor.fetchall()
+    lectures = cursor.fetchall()
 
-    return data
-
-
+    return {
+        "lectures": lectures
+    }
+    
 @app.post("/student-login")
 def student_login(
     student_id: int = Form(...),
@@ -970,15 +1086,36 @@ def create_test(data: dict):
 # ── GET TESTS ──
 @app.get("/get-tests")
 def get_tests(school_id: int, class_name: str):
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-    class_name = str(int(float(class_name)))
-    cursor.execute("""
-        SELECT * FROM tests
-        WHERE school_id=%s AND class_name=%s
-    """, (school_id, class_name))
-    return cursor.fetchall()
 
+    try:
+
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT *
+            FROM tests
+            WHERE school_id=%s
+            AND class_name=%s
+            ORDER BY id DESC
+        """, (school_id, class_name))
+
+        tests = cursor.fetchall()
+
+        return {
+            "success": True,
+            "tests": tests
+        }
+
+    except Exception as e:
+
+        print("GET TESTS ERROR:", str(e))
+
+        return {
+            "success": False,
+            "error": str(e),
+            "tests": []
+        }
 
 # ── GET TEST QUESTIONS ──
 @app.get("/get-test-questions")
