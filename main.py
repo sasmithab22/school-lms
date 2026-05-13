@@ -37,12 +37,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://school-lms-iota.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500"
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -330,20 +326,21 @@ def school_login(username: str, password: str):
 
 @app.get("/get-classes")
 def get_classes(school_id: int):
-
     db = get_db()
-    cursor = db.cursor()
-
-    query = "SELECT class_name FROM classes WHERE school_id=%s"
-
-    cursor.execute(query,(school_id,))
-
+    cursor = db.cursor(dictionary=True)
+    query = """
+    SELECT DISTINCT class
+    FROM students
+    ORDER BY class
+    """
+    cursor.execute(query)
     rows = cursor.fetchall()
-
-    classes = [r[0] for r in rows]
-
-    return {"classes": classes}
-
+    classes = []
+    for row in rows:
+        classes.append(row["class"])
+    return {
+        "classes": classes
+    }
 
 
 
