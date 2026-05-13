@@ -346,17 +346,8 @@ select{
       <div class="form-group">
         <label>Class</label>
 
-        <select id="classSelect">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-          <option value="9">9</option>
-          <option value="10">10</option>
+        <select id="class_name">
+          <option value="">Loading Classes...</option>
         </select>
       </div>
 
@@ -420,7 +411,7 @@ async function loadGallery(){
   let school_id = localStorage.getItem("school_id");
 
   let class_name =
-  document.getElementById("classSelect").value;
+  document.getElementById("class_name").value;
 
   let month =
   document.getElementById("monthSelect").value;
@@ -455,7 +446,7 @@ async function loadGallery(){
     if(item.file_type === "image"){
 
       preview = `
-      <img src="https://school-lms-production-6fcd.up.railway.app/${item.file_path}">
+      href="${item.file_path}"
       `;
     }
 
@@ -463,7 +454,7 @@ async function loadGallery(){
 
       preview = `
       <video controls>
-        <source src="https://school-lms-production-6fcd.up.railway.app/${item.file_path}">
+        href="${item.file_path}"
       </video>
       `;
     }
@@ -486,7 +477,7 @@ async function loadGallery(){
       <div class="file-bottom">
 
         <a class="download-btn"
-        href="https://school-lms-production-6fcd.up.railway.app/${item.file_path}"
+        href="${item.file_path}"
         target="_blank">
 
         ⬇ Download File
@@ -512,6 +503,55 @@ function logout(){
 
   window.location.href = "/";
 }
+
+async function loadClasses() {
+
+    try {
+
+        const school_id =
+        localStorage.getItem("school_id");
+
+        const response = await fetch(
+        `https://school-lms-production-6fcd.up.railway.app/get-classes?school_id=${school_id}`
+        );
+
+        const data = await response.json();
+
+        console.log(data);
+
+        const classSelect =
+        document.getElementById("class_name");
+
+        classSelect.innerHTML =
+        `<option value="">Select Class</option>`;
+
+        if (!data.classes || data.classes.length === 0) {
+
+            classSelect.innerHTML +=
+            `<option>No Classes Found</option>`;
+
+            return;
+        }
+
+        data.classes.forEach(cls => {
+
+            classSelect.innerHTML += `
+            <option value="${cls}">
+                ${cls}
+            </option>
+            `;
+        });
+
+    }
+
+    catch(error){
+
+        console.log(error);
+
+        alert("Failed to load classes");
+    }
+}
+loadClasses();
 
 </script>
 

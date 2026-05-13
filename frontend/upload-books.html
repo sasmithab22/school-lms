@@ -156,19 +156,7 @@ input[readonly] { background: #f1f5f9; color: #475569; cursor: default; }
       <div class="field">
         <label>Class</label>
         <select id="class_name">
-          <option value="">Select Class</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-          <option value="9">9</option>
-          <option value="10">10</option>
-          <option value="11">11</option>
-          <option value="12">12</option>
+          <option value="">Loading Classes...</option>
         </select>
       </div>
       <div class="field">
@@ -230,6 +218,7 @@ window.onload = () => {
   document.getElementById("staffNameDisplay").innerText = name;
   document.getElementById("staffIdDisplay").innerText   = "Staff ID : " + (staff_id || "-");
   document.getElementById("schoolTagName").innerText    = name;
+  loadClasses();
 }
 
 function fileSelected(input) {
@@ -291,6 +280,59 @@ function logout() {
   localStorage.clear();
   window.location.href = "/";
 }
+
+async function loadClasses(){
+
+  try{
+
+    let school_id =
+    localStorage.getItem("school_id");
+
+    let response = await fetch(
+    `https://school-lms-production-6fcd.up.railway.app/get-classes?school_id=${school_id}`
+    );
+
+    let data = await response.json();
+
+    console.log(data);
+
+    let classSelect =
+    document.getElementById("class_name");
+
+    classSelect.innerHTML =
+    `<option value="">Select Class</option>`;
+
+    if(!data.classes || data.classes.length === 0){
+
+      classSelect.innerHTML +=
+      `<option>No Classes Found</option>`;
+
+      return;
+
+    }
+
+    data.classes.forEach(cls => {
+
+      classSelect.innerHTML += `
+      <option value="${cls}">
+      ${cls}
+      </option>
+      `;
+
+    });
+
+  }
+
+  catch(error){
+
+    console.log(error);
+
+    alert("Failed to load classes");
+
+  }
+
+}
+
 </script>
 
 </body>

@@ -344,39 +344,13 @@ td input {
       <div class="field">
         <label>Class</label>
         <select id="class" style="width:110px;">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-          <option value="9">9</option>
-          <option value="10">10</option>
-          <option value="11">11</option>
-          <option value="12">12</option>
-          <option value=""LKG>LKG</option>
-          <option value="UKG">UKG</option>
+          <option value="">Loading Classes...</option>
         </select>
       </div>
 
       <div class="field">
-        <label>Month</label>
-        <select id="month" style="width:130px;">
-          <option value="January">January</option>
-          <option value="February">February</option>
-          <option value="March">March</option>
-          <option value="April">April</option>
-          <option value="May">May</option>
-          <option value="June">June</option>
-          <option value="July">July</option>
-          <option value="August">August</option>
-          <option value="September">September</option>
-          <option value="October">October</option>
-          <option value="November">November</option>
-          <option value="December">December</option>
-        </select>
+        <label>Date</label>
+        <input type="date" id="date" style="width:170px;">
       </div>
 
       <div class="field">
@@ -435,16 +409,18 @@ window.onload = () => {
 
   let displayName = school_name || "School";
 
-  // Form
   document.getElementById("schoolNameShow").value    = displayName;
   document.getElementById("school_id_hidden").value  = school_id;
 
-  // Sidebar
   document.getElementById("avatarLetter").innerText     = displayName.charAt(0).toUpperCase();
   document.getElementById("staffNameDisplay").innerText = displayName;
   document.getElementById("staffIdDisplay").innerText   = "Staff ID : " + (staff_id || "-");
   document.getElementById("schoolTagName").innerText    = displayName;
 
+  document.getElementById("date").value =
+  new Date().toISOString().split("T")[0];
+
+  loadClasses();
 }
 
 async function loadStudents() {
@@ -482,7 +458,7 @@ async function saveReports() {
 
   let school_id  = document.getElementById("school_id_hidden").value;
   let class_name = document.getElementById("class").value;
-  let month      = document.getElementById("month").value;
+  let date       = document.getElementById("date").value;
   let subject    = document.getElementById("subject").value;
   let mentor     = document.getElementById("mentor").value;
 
@@ -492,26 +468,42 @@ async function saveReports() {
   }
 
   for (let s of studentsData) {
+
     let attendance = document.getElementById(`att_${s.id}`).value;
     let mark       = document.getElementById(`mark_${s.id}`).value;
     let remark     = document.getElementById(`remark_${s.id}`).value;
 
-    await fetch("https://school-lms-production-6fcd.up.railway.app/submit-report", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        school_id  : school_id,
-        student_id : s.id,
-        student_name: s.first_name,
-        class_name : class_name,
-        subject    : subject,
-        mentor     : mentor,
-        month      : month,
-        attendance : attendance,
-        mark       : mark,
-        remarks    : remark
-      })
-    });
+    await fetch(
+      "https://school-lms-production-6fcd.up.railway.app/submit-report",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+          school_id   : school_id,
+          student_id  : s.id,
+
+          student_name:
+          `${s.first_name} ${s.last_name}`,
+
+          class_name  : class_name,
+          subject     : subject,
+          mentor      : mentor,
+
+          date        : date,
+
+          attendance  : attendance,
+          mark        : mark,
+          remarks     : remark
+
+        })
+
+      }
+    );
   }
 
   alert("✅ Reports Saved Successfully!");
@@ -521,6 +513,57 @@ async function saveReports() {
 function logout() {
   localStorage.clear();
   window.location.href = "/";
+}
+
+async function loadClasses(){
+
+  try{
+
+    let school_id =
+    localStorage.getItem("school_id");
+
+    let response = await fetch(
+    `https://school-lms-production-6fcd.up.railway.app/get-classes?school_id=${school_id}`
+    );
+
+    let data = await response.json();
+
+    console.log(data);
+
+    let classSelect =
+    document.getElementById("class");
+
+    classSelect.innerHTML =
+    `<option value="ALL">Select All</option>`;;
+
+    if(!data.classes || data.classes.length === 0){
+
+      classSelect.innerHTML +=
+      `<option>No Classes Found</option>`;
+
+      return;
+    }
+
+    data.classes.forEach(cls => {
+
+      classSelect.innerHTML += `
+      <option value="${cls}">
+        ${cls}
+      </option>
+      `;
+
+    });
+
+  }
+
+  catch(error){
+
+    console.log(error);
+
+    alert("Failed to load classes");
+
+  }
+
 }
 
 </script>

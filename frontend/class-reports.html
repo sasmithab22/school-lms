@@ -94,25 +94,14 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="field">
       <label>Class</label>
       <select id="classSelect">
-        <option value="">Select Class</option>
-        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-        <option value="LKG">LKG</option><option value="UKG">UKG</option>
+        <option value="">Loading Classes...</option>
       </select>
     </div>
     <div class="field">
-      <label>Month</label>
-      <select id="monthSelect">
-        <option value="">Select Month</option>
-        <option value="January">January</option><option value="February">February</option>
-        <option value="March">March</option><option value="April">April</option>
-        <option value="May">May</option><option value="June">June</option>
-        <option value="July">July</option><option value="August">August</option>
-        <option value="September">September</option><option value="October">October</option>
-        <option value="November">November</option><option value="December">December</option>
-      </select>
+      <label>Date</label>
+        <select id="dateSelect">
+          <option value="">Loading Dates...</option>
+        </select>
     </div>
     <button class="load-btn" onclick="loadReports()">Load Reports</button>
   </div>
@@ -148,15 +137,17 @@ window.onload = () => {
   document.getElementById("avatarLetter").innerText      = name.charAt(0).toUpperCase();
   document.getElementById("sidebarSchoolName").innerText = name;
   document.getElementById("sidebarSchoolTag").innerText  = name;
+  document.getElementById("classSelect").addEventListener("change", loadDates);
+  loadClasses();
+  // loadDates();
 }
 
 async function loadReports() {
   let classValue = document.getElementById("classSelect").value;
-  let monthValue = document.getElementById("monthSelect").value;
+  let dateValue  = document.getElementById("dateSelect").value;
+  if (!classValue || !dateValue) { alert("Class மற்றும் Date select பண்ணுங்க ❌"); return; }
 
-  if (!classValue || !monthValue) { alert("Class மற்றும் Month select பண்ணுங்க ❌"); return; }
-
-  let res  = await fetch(`https://school-lms-production-6fcd.up.railway.app/get-reports?class_name=${classValue}&month=${monthValue}`);
+  let res  = await fetch(`https://school-lms-production-6fcd.up.railway.app/get-reports?class_name=${classValue}&date=${dateValue}`);
   let data = await res.json();
 
   let reports = data.reports || [];
@@ -184,6 +175,112 @@ async function loadReports() {
 }
 
 function logout() { localStorage.clear(); window.location.href = "/"; }
+
+async function loadClasses() {
+
+  try {
+
+    let school_id =
+    localStorage.getItem("school_id");
+
+    let response = await fetch(
+    `https://school-lms-production-6fcd.up.railway.app/get-classes?school_id=${school_id}`
+    );
+
+    let data = await response.json();
+
+    console.log(data);
+
+    let classSelect =
+    document.getElementById("classSelect");
+
+    classSelect.innerHTML =
+    `<option value="ALL">Select All</option>`;
+
+    if (!data.classes || data.classes.length === 0) {
+
+      classSelect.innerHTML +=
+      `<option>No Classes Found</option>`;
+
+      return;
+    }
+
+    data.classes.forEach(cls => {
+
+      classSelect.innerHTML += `
+      <option value="${cls}">
+        ${cls}
+      </option>
+      `;
+    });
+
+  }
+
+  catch(error){
+
+    console.log(error);
+
+    alert("Failed to load classes");
+  }
+}
+document.getElementById("classSelect").value = "ALL";
+loadDates();
+async function loadDates() {
+
+    try {
+
+        let school_id =
+        localStorage.getItem("school_id");
+
+        let class_name =
+        document.getElementById("classSelect").value;
+
+        if (!class_name || class_name === "") {
+            class_name = "ALL";
+        }
+
+        let response = await fetch(
+        `https://school-lms-production-6fcd.up.railway.app/get-report-dates?school_id=${school_id}&class_name=${class_name}`
+        );
+
+        let data = await response.json();
+
+        console.log(data);
+
+        let dateSelect =
+        document.getElementById("dateSelect");
+
+        dateSelect.innerHTML =
+        `<option value="">Select Date</option>`;
+
+        if (!data.dates || data.dates.length === 0) {
+
+            dateSelect.innerHTML +=
+            `<option value="">No Dates Found</option>`;
+
+            return;
+        }
+
+        data.dates.forEach(d => {
+
+            dateSelect.innerHTML += `
+            <option value="${d}">
+                ${d}
+            </option>
+            `;
+        });
+
+    }
+
+    catch(error) {
+
+        console.log(error);
+
+        alert("Failed to load dates");
+
+    }
+}
+
 </script>
 </body>
 </html>
