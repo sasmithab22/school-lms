@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 import os
 import cloudinary
 import cloudinary.uploader
-
+from pydantic import BaseModel
+from fastapi import FastAPI
+from pydantic import BaseModel
+from database import get_db
 load_dotenv()
 
 # ── Cloudinary config (add these 3 keys to your .env) ──
@@ -671,67 +674,6 @@ def class_reports_summary(school_id:int,class_name:str,month:str):
     "total_students":len(rows),
     "reports":rows
     }
-
-
-
-from pydantic import BaseModel
-
-
-
-
-
-
-class Report(BaseModel):
-    student_id:int
-    school_id:int
-    class_name:str
-    subject:str
-    mentor:str
-    attendance:int
-    mark:int
-    remarks:str
-    month:str
-
-
-
-from fastapi import FastAPI
-from pydantic import BaseModel
-from database import get_db
-
-
-
-class Report(BaseModel):
-    student_id:int
-    school_id:int
-    class_name:str
-    subject:str
-    mentor:str
-    attendance:int
-    mark:int
-    remarks:str
-    month:str
-
-@app.get("/get-reports")
-def get_reports(class_name:str, month:str):
-
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT student_name as student,
-               subject,
-               mentor,
-               attendance,
-               mark,
-               remarks
-        FROM class_reports
-        WHERE class_name=%s AND month=%s
-    """,(class_name,month))
-
-    data = cursor.fetchall()
-
-    return {"reports":data}
-
 
 @app.post("/upload-gallery")
 async def upload_gallery(
