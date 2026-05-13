@@ -1086,15 +1086,36 @@ def create_test(data: dict):
 # ── GET TESTS ──
 @app.get("/get-tests")
 def get_tests(school_id: int, class_name: str):
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-    class_name = str(int(float(class_name)))
-    cursor.execute("""
-        SELECT * FROM tests
-        WHERE school_id=%s AND class_name=%s
-    """, (school_id, class_name))
-    return cursor.fetchall()
 
+    try:
+
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT *
+            FROM tests
+            WHERE school_id=%s
+            AND class_name=%s
+            ORDER BY id DESC
+        """, (school_id, class_name))
+
+        tests = cursor.fetchall()
+
+        return {
+            "success": True,
+            "tests": tests
+        }
+
+    except Exception as e:
+
+        print("GET TESTS ERROR:", str(e))
+
+        return {
+            "success": False,
+            "error": str(e),
+            "tests": []
+        }
 
 # ── GET TEST QUESTIONS ──
 @app.get("/get-test-questions")
