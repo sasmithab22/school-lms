@@ -441,39 +441,55 @@ def get_profile(school_id: int):
     return school   
 
 
-
-@app.get("/get-reports")
-def get_reports(class_name: str, month: str):
+@app.get("/get-report-dates")
+def get_report_dates():
 
     db = get_db()
 
     cursor = db.cursor(dictionary=True)
 
-    # SELECT ALL SUBJECTS
+    query = """
+    SELECT DISTINCT date
+    FROM attendance
+    ORDER BY date DESC
+    """
+
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    dates = []
+    for row in rows:
+        dates.append(str(row["date"]))
+    return {
+        "dates": dates
+    }
+    
+@app.get("/get-reports")
+def get_reports(class_name: str, date: str):
+
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
     if class_name == "ALL":
 
         query = """
         SELECT *
         FROM class_reports
-        WHERE month=%s
+        WHERE date=%s
         """
 
-        cursor.execute(query, (month,))
+        cursor.execute(query, (date,))
 
-    # SPECIFIC SUBJECT
     else:
 
         query = """
         SELECT *
         FROM class_reports
         WHERE class_name=%s
-        AND month=%s
+        AND date=%s
         """
 
-        cursor.execute(query, (class_name, month))
+        cursor.execute(query, (class_name, date))
 
     reports = cursor.fetchall()
-
     formatted_reports = []
 
     for r in reports:
@@ -487,7 +503,9 @@ def get_reports(class_name: str, month: str):
             "remarks": r["remarks"]
         })
 
-    return {"reports": formatted_reports}
+    return {
+        "reports": formatted_reports
+    }
 
 @app.post("/staff-login")
 def staff_login(username: str, password: str):
