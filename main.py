@@ -57,11 +57,16 @@ class ReportModel(BaseModel):
     mark: int
     remarks: str
 
+
 @app.get("/get-report-dates")
 def get_report_dates(school_id: int, class_name: str):
+
     db = get_db()
-    cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
+
+    # SELECT ALL support
     if class_name == "ALL":
+
         cursor.execute("""
             SELECT DISTINCT date
             FROM class_reports
@@ -69,7 +74,9 @@ def get_report_dates(school_id: int, class_name: str):
             AND date IS NOT NULL
             ORDER BY date DESC
         """, (school_id,))
+
     else:
+
         cursor.execute("""
             SELECT DISTINCT date
             FROM class_reports
@@ -78,14 +85,20 @@ def get_report_dates(school_id: int, class_name: str):
             AND date IS NOT NULL
             ORDER BY date DESC
         """, (school_id, class_name))
+
     rows = cursor.fetchall()
+
     dates = []
+
     for row in rows:
-        if row["date"]:
-            dates.append(str(row["date"]))
+
+        if row[0]:
+            dates.append(str(row[0]))
+
     return {
         "dates": dates
     }
+    
 @app.post("/submit-report")
 def submit_report(report: ReportModel):
     db = get_db()
