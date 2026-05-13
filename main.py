@@ -208,17 +208,35 @@ def create_student(name:str,email:str,password:str,class_id:int,school_id:int):
 
 
 @app.post("/mark-attendance")
-def mark_attendance(student_id:int,class_id:int,status:str):
+def mark_attendance(
+    student_id: int,
+    class_name: str,
+    status: str
+):
 
     db = get_db()
     cursor = db.cursor()
+    today = date.today()
+    query = """
+    INSERT INTO attendance
+    (student_id, class_id, date, status)
+    VALUES (%s, %s, %s, %s)
+    """
 
-    query = "INSERT INTO attendance (student_id,class_id,date,status) VALUES (%s,%s,CURDATE(),%s)"
-    cursor.execute(query,(student_id,class_id,status))
+    cursor.execute(
+        query,
+        (
+            student_id,
+            class_name,
+            today,
+            status
+        )
+    )
 
     db.commit()
-
-    return {"message":"Attendance marked"}
+    return {
+        "message": "Attendance Marked"
+    }
 
 
 @app.post("/add-marks")
