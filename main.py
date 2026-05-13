@@ -468,7 +468,7 @@ def staff_login(username: str, password: str):
     return {
         "message"    : "Login success",
         "staff_id"   : staff["id"],
-        "school_id"  : staff["school_id"],
+        "school_id"  : 1,
         "school_name": school["school_name"]  # ✅ இது add பண்ணு
     }
 
