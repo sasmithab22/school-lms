@@ -862,9 +862,6 @@ import shutil
 from fastapi import FastAPI, UploadFile, File, Form
 
 import os
-
-
-
 @app.post("/upload-lecture")
 async def upload_lecture(
     school_id: int = Form(...),
@@ -877,15 +874,21 @@ async def upload_lecture(
 
     try:
 
-        # READ VIDEO
+        print("UPLOAD STARTED")
+
+        # read file
         file_bytes = await video.read()
 
-        # UPLOAD TO CLOUDINARY
-        result = cloudinary.uploader.upload(
+        print("FILE READ SUCCESS")
+
+        # upload to cloudinary
+        result = cloudinary.uploader.upload_large(
             file_bytes,
             resource_type="video",
             folder="lectures"
         )
+
+        print("CLOUDINARY SUCCESS")
 
         video_url = result["secure_url"]
 
@@ -931,23 +934,37 @@ async def upload_lecture(
         }
 
 @app.get("/get-lectures")
-def get_lectures(class_name: str, school_id: int):
+def get_lectures(
+    school_id: int,
+    class_name: str
+):
 
     db = get_db()
     cursor = db.cursor(dictionary=True)
 
-    class_name = str(int(float(class_name)))
+    query = """
+    SELECT
+        id,
+        school_id,
+        class_name,
+        subject,
+        title,
+        description,
+        video
+    FROM lectures
+    WHERE school_id=%s
+    AND class_name=%s
+    ORDER BY id DESC
+    """
 
-    cursor.execute("""
-    SELECT * FROM lectures
-    WHERE class_name=%s AND school_id=%s
-    """, (class_name, school_id))
+    cursor.execute(query, (school_id, class_name))
 
-    data = cursor.fetchall()
+    lectures = cursor.fetchall()
 
-    return data
-
-
+    return {
+        "lectures": lectures
+    }
+    
 @app.post("/student-login")
 def student_login(
     student_id: int = Form(...),
