@@ -42,7 +42,69 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from pydantic import BaseModel
 
+class ReportModel(BaseModel):
+
+    school_id: int
+    student_id: int
+
+    student_name: str
+
+    class_name: str
+    subject: str
+    mentor: str
+
+    date: str
+
+    attendance: int
+    mark: int
+
+    remarks: str
+
+
+@app.post("/submit-report")
+def submit_report(report: ReportModel):
+    db = get_db()
+    cursor = db.cursor()
+    query = """
+    INSERT INTO class_reports
+    (
+        school_id,
+        student_id,
+        student_name,
+        class_name,
+        subject,
+        mentor,
+        date,
+        attendance,
+        mark,
+        remarks
+    )
+    VALUES
+    (
+        %s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+    )
+    """
+    values = (
+
+        report.school_id,
+        report.student_id,
+        report.student_name,
+        report.class_name,
+        report.subject,
+        report.mentor,
+        report.date,
+        report.attendance,
+        report.mark,
+        report.remarks
+    )
+    cursor.execute(query, values)
+    db.commit()
+
+    return {
+        "message": "Report saved successfully"
+    }
 @app.post("/register")
 def register(name:str,email:str,password:str,role:str):
 
@@ -635,36 +697,6 @@ class Report(BaseModel):
     mark:int
     remarks:str
     month:str
-
-@app.post("/submit-report")
-def submit_report(data: dict):
-
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute("""
-    INSERT INTO class_reports
-    (school_id,student_id,student_name,class_name,subject,mentor,month,attendance,mark,remarks)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """,(
-
-    data["school_id"],
-    data["student_id"],
-    data["student_name"],
-    data["class_name"],
-    data["subject"],
-    data["mentor"],
-    data["month"],
-    data["attendance"],
-    data["mark"],
-    data["remarks"]
-
-    ))
-
-    db.commit()
-
-    return {"message":"Report Saved"}
-
 
 @app.get("/get-reports")
 def get_reports(class_name:str, month:str):
