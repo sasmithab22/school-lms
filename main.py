@@ -181,21 +181,21 @@ def get_submissions():
 
 
 @app.post("/create-staff")
-def create_staff(username:str, password:str):
+def create_staff(username:str,password:str,school_id:int=1):
 
     db = get_db()
     cursor = db.cursor()
 
     query = """
-    INSERT INTO staff (username,password)
-    VALUES (%s,%s)
+    INSERT INTO staff(username,password,school_id)
+    VALUES(%s,%s,%s)
     """
 
-    cursor.execute(query,(username,password))
+    cursor.execute(query,(username,password,school_id))
 
     db.commit()
 
-    return {"message":"Staff created"}
+    return {"message":"Staff created successfully"}
 
 @app.post("/create-student")
 def create_student(name:str,email:str,password:str,class_id:int,school_id:int):
