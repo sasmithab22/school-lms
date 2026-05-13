@@ -1,8 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 jinja2
 python-multipart
 mysql-connector-python
 python-dotenv
 pandas
 cloudinary
+openpyxl
+gunicorn
