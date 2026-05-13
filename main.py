@@ -537,29 +537,6 @@ def get_profile(school_id: int):
     db.close()
 
     return school   
-
-
-@app.get("/get-report-dates")
-def get_report_dates():
-
-    db = get_db()
-
-    cursor = db.cursor(dictionary=True)
-
-    query = """
-    SELECT DISTINCT date
-    FROM attendance
-    ORDER BY date DESC
-    """
-
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    dates = []
-    for row in rows:
-        dates.append(str(row["date"]))
-    return {
-        "dates": dates
-    }
     
 @app.get("/get-reports")
 def get_reports(class_name: str, date: str):
